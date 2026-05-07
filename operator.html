@@ -34,7 +34,7 @@
     <p>Kelola akun petugas ronda yang dapat mengakses aplikasi</p>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px" class="op-grid">
+  <div class="dash-grid op-grid">
     <!-- Daftar operator -->
     <div class="card" style="grid-column:1/-1">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -222,9 +222,7 @@ async function doRestore(inp) {
 function clearAll() {
   if (!confirm('⚠️ HAPUS SEMUA DATA? Tindakan ini tidak bisa dibatalkan!')) return;
   if (!confirm('Yakin? Semua warga, log ronda, dan aktivitas akan dihapus.')) return;
-  DB.clear();
-  localStorage.setItem('_is_seeded', '1'); // Mencegah data sample muncul lagi setelah dikosongkan
-  Auth.log('CLEAR_ALL', 'Semua data dihapus');
+  DB.clear(); Auth.log('CLEAR_ALL', 'Semua data dihapus');
   Notif.success('Semua data dihapus. Aplikasi akan reload...');
   setTimeout(() => window.location.href = 'login.html', 2000);
 }
@@ -234,8 +232,6 @@ function closeSidebar() { document.getElementById('sidebar').classList.remove('o
 
 renderOps();
 </script>
-<style>
-@media(max-width:768px){.op-grid{grid-template-columns:1fr!important}}
-</style>
+
 </body>
 </html>

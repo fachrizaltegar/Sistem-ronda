@@ -65,7 +65,7 @@
       <div class="card-title" id="rondaTitle">Semua Data Ronda</div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>#</th><th>Nama KK</th><th>Alamat</th><th>RT/RW</th><th>Tanggal</th><th>Waktu</th><th>Nominal</th><th>Metode</th><th>Catatan</th><th>Aksi</th></tr></thead>
+          <thead><tr><th>#</th><th>Nama KK</th><th>Alamat</th><th>RT/RW</th><th>Tanggal</th><th>Waktu</th><th>Nominal</th><th>Metode</th><th>Catatan</th><th>Hapus</th></tr></thead>
           <tbody id="tRonda"></tbody>
         </table>
       </div>
@@ -170,37 +170,8 @@ function renderRonda() {
     <td><span class="badge green">${fmt(l.nominal)}</span></td>
     <td><span class="badge ${l.method==='scan'?'blue':'yellow'}">${l.method==='scan'?'📷 Scan':'✏️ Manual'}</span></td>
     <td>${l.catatan||'-'}</td>
-    <td>
-      <div style="display:flex;gap:5px">
-        <button class="btn btn-ghost btn-sm" onclick="editRonda('${l.id}')">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="delRonda('${l.id}')">🗑️</button>
-      </div>
-    </td>
+    <td><button class="btn btn-danger btn-sm" onclick="delRonda('${l.id}')">🗑️</button></td>
   </tr>`).join('');
-}
-
-function editRonda(id) {
-  const logs = DB.ronda.all();
-  const l = logs.find(item => item.id === id);
-  if (!l) return;
-  document.getElementById('editLogId').value = id;
-  document.getElementById('editLogNama').textContent = l.nama;
-  document.getElementById('editLogNominal').value = l.nominal;
-  document.getElementById('editLogCatatan').value = l.catatan || '';
-  document.getElementById('modalEditLog').classList.add('open');
-}
-
-function closeEditLog() { document.getElementById('modalEditLog').classList.remove('open'); }
-
-function saveEditLog() {
-  const id = document.getElementById('editLogId').value;
-  const nominal = parseInt(document.getElementById('editLogNominal').value) || 0;
-  const catatan = document.getElementById('editLogCatatan').value.trim();
-  try {
-    DB.ronda.update(id, { nominal, catatan });
-    Notif.success('Data diperbarui!');
-    closeEditLog(); renderAll();
-  } catch(e) { Notif.error(e.message); }
 }
 
 function delRonda(id) {
@@ -251,41 +222,11 @@ function DateFmt(d) {
 
 function empty(cols=10) { return `<tr><td colspan="${cols}"><div class="empty"><div class="e-icon">📭</div><p>Tidak ada data</p></div></td></tr>`; }
 
-  renderAll();
-}
-
 function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
 function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
 
 renderAll();
 </script>
-
-<!-- MODAL EDIT LOG -->
-<div class="modal-overlay" id="modalEditLog">
-  <div class="modal" style="max-width:400px">
-    <div class="modal-header">
-      <h3>Edit Data Ronda</h3>
-      <button class="modal-close" onclick="closeEditLog()">✕</button>
-    </div>
-    <div style="margin-bottom:16px">
-      <div style="font-size:14px;font-weight:600;color:#a5b4fc" id="editLogNama"></div>
-    </div>
-    <input type="hidden" id="editLogId">
-    <div class="form-group">
-      <label>Nominal (Rp)</label>
-      <input class="form-control" type="number" id="editLogNominal">
-    </div>
-    <div class="form-group">
-      <label>Catatan</label>
-      <input class="form-control" id="editLogCatatan">
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeEditLog()">Batal</button>
-      <button class="btn btn-primary" onclick="saveEditLog()">💾 Simpan</button>
-    </div>
-  </div>
-</div>
-
 <style>
 .tab-btn{background:none;border:none;color:rgba(255,255,255,.5);font-size:14px;font-weight:500;padding:10px 16px;border-bottom:2px solid transparent;font-family:'Inter',sans-serif;transition:all .2s;cursor:pointer}
 .tab-btn:hover{color:#fff}

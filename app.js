@@ -5,7 +5,7 @@ const DB = {
   _s(k,v){ localStorage.setItem(k,JSON.stringify(v)); },
   _id(){ return Date.now()+'-'+Math.random().toString(36).slice(2,8); },
   _dt(d){ return d.toLocaleDateString('sv-SE'); },
-  _tm(d){ return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); },
+  _tm(d){ return d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); },
   today(){ return DB._dt(new Date()); },
 
   warga:{
@@ -52,12 +52,6 @@ const DB = {
       list.push(e); DB._s(DB.K.R,list);
       Auth.log('CATAT_RONDA','Ronda: '+w.nama+' (Rp '+nominal+')');
       return e;
-    },
-    update(id,f){
-      const list=DB._g(DB.K.R),i=list.findIndex(r=>r.id===id);
-      if(i<0) throw new Error('Tidak ditemukan.');
-      list[i]={...list[i],...f,updatedAt:new Date().toISOString()};
-      DB._s(DB.K.R,list); return list[i];
     },
     del(id){
       const list=DB._g(DB.K.R).filter(r=>r.id!==id);
@@ -181,26 +175,35 @@ const DB = {
       });
       if(changed) DB._s(DB.K.R, logs);
     } catch(e) { console.error('Migration failed', e); }
-  },
-  clear(){
-    Object.values(DB.K).forEach(k => {
-      if(k !== DB.K.SES) localStorage.removeItem(k);
-    });
-    localStorage.removeItem('_is_seeded');
   }
 };
 
 // QR Helper
 const QR={
-  payload(w){ return JSON.stringify({id:w.id,nama:w.nama,alamat:w.alamat,rt:w.rt,rw:w.rw,type:'RONDA_QR'}); },
-  parse(raw){ try{const d=JSON.parse(raw);return d.type==='RONDA_QR'&&d.id?d:null;}catch{return null;} },
+  payload(w){ 
+    // Gunakan format minimal untuk mengurangi kepadatan QR agar lebih mudah di-scan
+    return `RONDA_QR:${w.id}:${w.nama}:${w.rt}:${w.rw}`;
+  },
+  parse(raw){ 
+    try {
+      if(raw.startsWith('RONDA_QR:')) {
+        const parts = raw.split(':');
+        return { id: parts[1], nama: parts[2], rt: parts[3], rw: parts[4], type: 'RONDA_QR' };
+      }
+      const d=JSON.parse(raw);
+      return d.type==='RONDA_QR'&&d.id?d:null;
+    } catch(e) { return null; } 
+  },
+  vibrate() {
+    if ("vibrate" in navigator) navigator.vibrate(100);
+  },
   gen(elId,payload,w=200){
     const el=document.getElementById(elId); if(!el) return; el.innerHTML='';
     if(typeof QRCode==='undefined'){el.innerHTML='<p style="color:red">QRCode.js tidak dimuat</p>';return;}
     return new QRCode(el,{text:payload,width:w,height:w,colorDark:'#0f172a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
   },
   print(warga){
-    const p=warga.qr||QR.payload(warga);
+    const p=QR.payload(warga);
     const win=window.open('','_blank');
     win.document.write(`<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>QR - ${warga.nama}</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>

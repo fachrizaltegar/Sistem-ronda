@@ -60,7 +60,12 @@ tr:last-child td{border:none}
 .login-card p{text-align:center;font-size:13px;color:rgba(255,255,255,.4);margin-bottom:24px}
 @keyframes sIn{from{opacity:0;transform:translateX(100%)}to{opacity:1;transform:translateX(0)}}
 @keyframes sOut{from{opacity:1}to{opacity:0;transform:translateX(100%)}}
-@media(max-width:640px){.grid{grid-template-columns:1fr}.stat-row{grid-template-columns:1fr 1fr}}
+@media(max-width:768px){
+  .grid, .stat-row{grid-template-columns:1fr !important; gap:16px}
+  .container{padding:12px}
+  .header h1{font-size:16px}
+  .header .ops-info{font-size:11px}
+}
 </style>
 </head>
 <body>
@@ -257,22 +262,64 @@ function startScan() {
   document.getElementById('btnScan').style.display = 'none';
   document.getElementById('btnStop').style.display = 'flex';
   document.getElementById('scanStatus').textContent = '📡 Menginisialisasi kamera...';
+  
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+    showNotif('Scanner membutuhkan HTTPS agar kamera berfungsi 🔐', 'y');
+  }
+
   _scanner = new Html5Qrcode('reader');
-  _scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 200 }, onScan, () => {})
-    .then(() => document.getElementById('scanStatus').textContent = '✅ Kamera aktif – arahkan ke QR Code')
-    .catch(e => { document.getElementById('scanStatus').textContent = '❌ ' + e; stopScan(); });
+  const config = { 
+    fps: 15, 
+    qrbox: (viewfinderWidth, viewfinderHeight) => {
+        let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+        let boxSize = Math.floor(minEdge * 0.75);
+        return { width: boxSize, height: boxSize };
+    },
+    aspectRatio: 1.0
+  };
+
+  _scanner.start({ facingMode: 'environment' }, config, onScan, () => {})
+    .then(() => {
+        document.getElementById('scanStatus').textContent = '✅ Kamera aktif – arahkan ke QR Code';
+        const track = _scanner.getRunningTrack();
+        if (track && track.getCapabilities().torch) {
+            document.getElementById('scanStatus').innerHTML += '<br><button class="btn btn-sm btn-ghost" style="margin-top:5px;padding:6px 12px;font-size:12px" onclick="toggleTorch()">🔦 Senter</button>';
+        }
+    })
+    .catch(e => { document.getElementById('scanStatus').textContent = '❌ Gagal akses kamera'; stopScan(); });
+}
+
+function toggleTorch() {
+  if (!_scanner) return;
+  const track = _scanner.getRunningTrack();
+  if (track && track.getCapabilities().torch) {
+    const isTorchOn = track.getSettings().torch;
+    track.applyConstraints({ advanced: [{ torch: !isTorchOn }] });
+  }
 }
 
 function stopScan() {
-  if (_scanner) { _scanner.stop().catch(() => {}); _scanner = null; }
-  document.getElementById('btnScan').style.display = 'flex';
-  document.getElementById('btnStop').style.display = 'none';
-  document.getElementById('scanStatus').textContent = 'Kamera dimatikan.';
+  if (_scanner) { 
+    _scanner.stop().then(() => {
+        _scanner = null; 
+        document.getElementById('btnScan').style.display = 'flex';
+        document.getElementById('btnStop').style.display = 'none';
+        document.getElementById('scanStatus').textContent = 'Kamera dimatikan.';
+        document.getElementById('reader').innerHTML = '';
+    }).catch(e => console.warn(e));
+  } else {
+    document.getElementById('btnScan').style.display = 'flex';
+    document.getElementById('btnStop').style.display = 'none';
+  }
 }
 
 function onScan(text) {
+  QR.vibrate();
   const data = QR.parse(text);
-  if (!data) { showNotif('QR tidak dikenal ❌', 'r'); return; }
+  if (!data) { 
+    console.log('Invalid QR:', text);
+    return; 
+  }
   const w = DB.warga.byId(data.id);
   if (!w) { showNotif('Warga tidak ada di database ❌', 'r'); return; }
   stopScan();

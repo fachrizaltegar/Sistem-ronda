@@ -125,16 +125,49 @@ select.form-control option{background:#1e293b;color:#fff}
 .topbar{display:none;align-items:center;justify-content:space-between;padding:16px 20px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;z-index:99}
 .btn-menu{background:none;border:none;color:#fff;font-size:22px;padding:4px}
 
+/* ─── GRID LAYOUTS ─── */
+.dash-grid, .scan-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.no-margin { margin-bottom: 0; }
+
 /* ─── RESPONSIVE ─── */
 @media(max-width:768px){
-  .sidebar{transform:translateX(-100%)}
+  .sidebar{width:280px;transform:translateX(-100%);box-shadow:20px 0 50px rgba(0,0,0,.5)}
   .sidebar.open{transform:translateX(0)}
-  .main{margin-left:0;padding:16px}
+  .main{margin-left:0;padding:12px;padding-top:20px;padding-bottom:40px}
   .topbar{display:flex}
-  .form-row{grid-template-columns:1fr}
-  .stat-grid{grid-template-columns:1fr 1fr}
-  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
+  .form-row, .dash-grid, .scan-grid{grid-template-columns:1fr; gap: 16px}
+  .stat-grid{grid-template-columns:1fr 1fr;gap:12px}
+  .stat-card{padding:16px}
+  .stat-card .s-val{font-size:24px}
+  .stat-card .s-icon{font-size:24px}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:99}
   .overlay.open{display:block}
+  
+  /* Touch target improvements */
+  .btn{padding:12px 20px}
+  .nav-item{padding:14px 16px}
+  input, select, .form-control{font-size:16px;padding:12px 14px}
+  
+  .card{padding:16px}
+  .page-header h1{font-size:20px}
+  
+  /* Table horizontal scroll indicators */
+  .tbl-wrap {
+    background: linear-gradient(to right, #111827, transparent 15%, transparent 85%, #111827) no-repeat;
+    background-size: 40px 100%, 40px 100%;
+    background-position: 0 0, 100% 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media(max-width:480px){
+  .stat-grid{grid-template-columns:1fr}
 }
 
 /* ─── SCROLLBAR ─── */
