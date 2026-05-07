@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scan Ronda – Sistem Ronda</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="icon">🛡️</div><div><h2>Sistem Ronda</h2><small>RT/RW Manager</small></div></div>
+  <a href="index.html" class="nav-item"><span class="ni">📊</span> Dashboard</a>
+  <a href="warga.html" class="nav-item"><span class="ni">👥</span> Data Warga</a>
+  <a href="scan.html" class="nav-item active"><span class="ni">📷</span> Scan / Input Ronda</a>
+  <a href="laporan.html" class="nav-item"><span class="ni">📋</span> Laporan</a>
+  <a href="operator.html" class="nav-item" id="adminNav"><span class="ni">⚙️</span> Manajemen Operator</a>
+  <div class="sidebar-user">
+    <div class="uname" id="uName">—</div><div class="urole" id="uRole">—</div>
+    <button class="btn-logout" onclick="Auth.logout()">🚪 Keluar</button>
+  </div>
+</nav>
+
+<div class="topbar">
+  <button class="btn-menu" onclick="openSidebar()">☰</button>
+  <span style="font-weight:600;font-size:15px">Scan Ronda</span>
+  <span></span>
+</div>
+
+<main class="main fade-in">
+  <div class="page-header">
+    <h1>📷 Scan & Input Ronda</h1>
+    <p>Scan QR Code atau input manual untuk catat kehadiran ronda</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" class="scan-grid">
+
+    <!-- Panel Scan QR -->
+    <div class="card">
+      <div class="card-title">📷 Scan QR Code</div>
+      <div id="reader" style="border-radius:12px;overflow:hidden;min-height:250px;background:rgba(0,0,0,.3)"></div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-primary" id="btnScan" onclick="startScan()">▶ Mulai Scan</button>
+        <button class="btn btn-ghost" id="btnStop" onclick="stopScan()" style="display:none">⏹ Stop</button>
+      </div>
+      <div id="scanStatus" style="margin-top:12px;font-size:13px;color:rgba(255,255,255,.5)">Klik "Mulai Scan" untuk mengaktifkan kamera</div>
+    </div>
+
+    <!-- Panel Input Manual -->
+    <div class="card">
+      <div class="card-title">✏️ Input Manual</div>
+      <div class="form-group">
+        <label>Pilih Warga</label>
+        <select class="form-control" id="selWarga">
+          <option value="">— Pilih nama warga —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Nominal Ronda (Rp)</label>
+        <input class="form-control" type="number" id="inpNominal" value="5000" step="500">
+      </div>
+      <div class="form-group">
+        <label>Catatan (opsional)</label>
+        <input class="form-control" id="inpCatatan" placeholder="Keterangan tambahan...">
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="inputManual()">💾 Catat Ronda</button>
+
+      <!-- Info warga terpilih -->
+      <div id="wargaInfo" style="display:none;margin-top:16px;padding:14px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:12px">
+        <div style="font-size:13px;font-weight:600;color:#a5b4fc" id="wiNama"></div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" id="wiAlamat"></div>
+        <div style="margin-top:8px" id="wiStatus"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log hari ini -->
+  <div class="card" style="margin-top:20px">
+    <div class="card-title">📋 Log Ronda Hari Ini</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Nama</th><th>Alamat</th><th>RT/RW</th><th>Waktu</th><th>Nominal</th><th>Metode</th><th>Aksi</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL KONFIRMASI SCAN -->
+<div class="modal-overlay" id="modalKonfirm">
+  <div class="modal" style="max-width:400px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">✅</div>
+    <h3 style="color:#fff;margin-bottom:8px" id="konfNama">—</h3>
+    <p style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:20px" id="konfAlamat">—</p>
+    <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:16px;margin-bottom:20px">
+      <div style="font-size:13px;color:rgba(255,255,255,.6);margin-bottom:8px">Nominal Ronda</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px">
+        <button onclick="adjJml(-1000)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:16px">−1k</button>
+        <span id="konfJml" style="font-size:24px;font-weight:700;color:#fff;min-width:100px;text-align:center">5000</span>
+        <button onclick="adjJml(1000)" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:16px">+1k</button>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:center">
+      <button class="btn btn-ghost" onclick="cancelKonfirm()">Batal</button>
+      <button class="btn btn-primary" onclick="confirmScan()">✅ Konfirmasi & Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+Auth.guard();
+const ses = Auth.ses();
+document.getElementById('uName').textContent = ses.nama;
+document.getElementById('uRole').textContent = ses.role;
+if (ses.role !== 'admin') document.getElementById('adminNav').style.display = 'none';
+
+let scanner = null, _scanData = null, _konfJml = 5000;
+
+// Isi dropdown warga
+function populateSelect() {
+  const sel = document.getElementById('selWarga');
+  const cur = sel.value;
+  const warga = DB.warga.all().sort((a,b) => a.nama.localeCompare(b.nama));
+  sel.innerHTML = '<option value="">— Pilih nama warga —</option>' + warga.map(w => `<option value="${w.id}">${w.nama} – RT ${w.rt}/RW ${w.rw}</option>`).join('');
+  sel.value = cur;
+}
+
+document.getElementById('selWarga').addEventListener('change', function() {
+  const id = this.value;
+  const info = document.getElementById('wargaInfo');
+  if (!id) { info.style.display = 'none'; return; }
+  const w = DB.warga.byId(id);
+  const log = DB.ronda.byDate(DB.today()).find(l => l.wargaId === id);
+  document.getElementById('wiNama').textContent = w.nama;
+  document.getElementById('wiAlamat').textContent = w.alamat + ' | RT ' + w.rt + ' / RW ' + w.rw;
+  document.getElementById('wiStatus').innerHTML = log ? `<span class="badge green">✅ Sudah bayar ${fmt(log.nominal)} hari ini</span>` : '<span class="badge red">⏳ Belum bayar hari ini</span>';
+  info.style.display = 'block';
+});
+
+function startScan() {
+  document.getElementById('btnScan').style.display = 'none';
+  document.getElementById('btnStop').style.display = 'inline-flex';
+  document.getElementById('scanStatus').textContent = '📡 Menginisialisasi kamera...';
+  scanner = new Html5Qrcode('reader');
+  scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 220 }, onScanSuccess, () => {})
+    .then(() => { document.getElementById('scanStatus').textContent = '✅ Kamera aktif – Arahkan ke QR Code'; })
+    .catch(e => { document.getElementById('scanStatus').textContent = '❌ ' + e; stopScan(); });
+}
+
+function stopScan() {
+  if (scanner) scanner.stop().catch(() => {});
+  scanner = null;
+  document.getElementById('btnScan').style.display = 'inline-flex';
+  document.getElementById('btnStop').style.display = 'none';
+  document.getElementById('scanStatus').textContent = 'Kamera dimatikan.';
+}
+
+function onScanSuccess(text) {
+  const data = QR.parse(text);
+  if (!data) { Notif.warning('QR tidak dikenal.'); return; }
+  const warga = DB.warga.byId(data.id);
+  if (!warga) { Notif.error('Warga tidak ditemukan di database.'); return; }
+  stopScan();
+  _scanData = warga; _konfJml = 5000;
+  document.getElementById('konfNama').textContent = warga.nama;
+  document.getElementById('konfAlamat').textContent = warga.alamat + ' | RT ' + warga.rt + ' / RW ' + warga.rw;
+  document.getElementById('konfJml').textContent = _konfJml;
+  document.getElementById('modalKonfirm').classList.add('open');
+}
+
+function adjJml(d) { _konfJml = Math.max(0, _konfJml + d); document.getElementById('konfJml').textContent = _konfJml; }
+function cancelKonfirm() { document.getElementById('modalKonfirm').classList.remove('open'); _scanData = null; }
+
+function confirmScan() {
+  if (!_scanData) return;
+  try {
+    DB.ronda.record({ wargaId: _scanData.id, nominal: _konfJml, method: 'scan' });
+    Notif.success('Ronda ' + _scanData.nama + ' berhasil dicatat!');
+    document.getElementById('modalKonfirm').classList.remove('open');
+    _scanData = null; renderLog();
+  } catch(e) { Notif.error(e.message); }
+}
+
+function inputManual() {
+  const wargaId = document.getElementById('selWarga').value;
+  const nominal = parseInt(document.getElementById('inpNominal').value) || 0;
+  const catatan = document.getElementById('inpCatatan').value.trim();
+  if (!wargaId) { Notif.warning('Pilih warga terlebih dahulu.'); return; }
+  try {
+    const log = DB.ronda.record({ wargaId, nominal, catatan, method: 'manual' });
+    const w = DB.warga.byId(wargaId);
+    Notif.success('Ronda ' + w.nama + ' dicatat (' + fmt(nominal) + ')!');
+    document.getElementById('selWarga').value = '';
+    document.getElementById('inpNominal').value = 5000;
+    document.getElementById('inpCatatan').value = '';
+    document.getElementById('wargaInfo').style.display = 'none';
+    renderLog(); populateSelect();
+  } catch(e) { Notif.error(e.message); }
+}
+
+function renderLog() {
+  const logs = DB.ronda.byDate(DB.today());
+  const body = document.getElementById('logBody');
+  if (!logs.length) { body.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="e-icon">📭</div><p>Belum ada ronda hari ini</p></div></td></tr>'; return; }
+  body.innerHTML = logs.map((l, i) => `<tr>
+    <td>${i+1}</td><td><strong>${l.nama}</strong></td><td>${l.alamat}</td>
+    <td>RT ${l.rt}/RW ${l.rw}</td><td>${l.waktu}</td>
+    <td><span class="badge green">${fmt(l.nominal)}</span></td>
+    <td><span class="badge ${l.method==='scan'?'blue':'yellow'}">${l.method==='scan'?'📷 Scan':'✏️ Manual'}</span></td>
+    <td><button class="btn btn-danger btn-sm" onclick="delLog('${l.id}')">🗑️</button></td>
+  </tr>`).join('');
+}
+
+function delLog(id) {
+  if (!confirm('Hapus log ini?')) return;
+  DB.ronda.del(id); Notif.success('Log dihapus.'); renderLog();
+}
+
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+
+populateSelect(); renderLog();
+</script>
+<style>
+@media(max-width:768px){.scan-grid{grid-template-columns:1fr!important}}
+</style>
+</body>
+</html>

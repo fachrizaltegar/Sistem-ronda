@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Catat Ronda</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#0b0f1a;color:#e2e8f0;min-height:100vh}
+.header{background:rgba(99,102,241,.15);border-bottom:1px solid rgba(99,102,241,.2);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:18px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+.header .ops-info{font-size:13px;color:rgba(255,255,255,.5);text-align:right}
+.ops-info b{color:#a5b4fc;display:block}
+.container{max-width:900px;margin:0 auto;padding:20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px}
+.card-title{font-size:15px;font-weight:600;color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.btn{padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;width:100%;justify-content:center}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(99,102,241,.4)}
+.btn-ghost{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7)}
+.btn-ghost:hover{background:rgba(255,255,255,.12);color:#fff}
+.btn-danger{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.2);color:#fca5a5}
+.form-group{margin-bottom:14px}
+label{display:block;font-size:13px;font-weight:500;color:rgba(255,255,255,.6);margin-bottom:6px}
+.form-control{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 14px;color:#fff;font-size:14px;outline:none;transition:all .3s;font-family:'Inter',sans-serif}
+.form-control::placeholder{color:rgba(255,255,255,.3)}
+.form-control:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+select.form-control option{background:#1e293b}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.g{background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.2)}
+.r{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.2)}
+.b{background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.2)}
+.y{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.2)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 10px;font-size:11px;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)}
+td{padding:10px;border-bottom:1px solid rgba(255,255,255,.05)}
+tr:last-child td{border:none}
+#reader{width:100%;border-radius:10px;overflow:hidden;min-height:220px;background:rgba(0,0,0,.4)}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px;text-align:center}
+.stat .v{font-size:28px;font-weight:700;color:#fff}
+.stat .l{font-size:12px;color:rgba(255,255,255,.4);margin-top:4px}
+.warga-info{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:14px;margin-top:12px;display:none}
+.warga-info .wn{font-size:14px;font-weight:600;color:#a5b4fc}
+.warga-info .wa{font-size:12px;color:rgba(255,255,255,.4);margin-top:3px}
+.scan-status{margin-top:10px;font-size:13px;color:rgba(255,255,255,.5);text-align:center}
+.btn-row{display:flex;gap:8px;margin-top:10px}
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:#111827;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:380px;text-align:center;transform:scale(.95);transition:transform .3s}
+.overlay.open .modal{transform:scale(1)}
+/* SCREEN LOGIN PETUGAS */
+.login-screen{position:fixed;inset:0;background:#0b0f1a;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:40px;width:100%;max-width:380px}
+.login-card .ico{font-size:48px;text-align:center;margin-bottom:16px}
+.login-card h2{text-align:center;font-size:22px;color:#fff;margin-bottom:4px}
+.login-card p{text-align:center;font-size:13px;color:rgba(255,255,255,.4);margin-bottom:24px}
+@keyframes sIn{from{opacity:0;transform:translateX(100%)}to{opacity:1;transform:translateX(0)}}
+@keyframes sOut{from{opacity:1}to{opacity:0;transform:translateX(100%)}}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.stat-row{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<!-- LAYAR PILIH PETUGAS -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="ico">🛡️</div>
+    <h2>Petugas Ronda</h2>
+    <p>Pilih nama kamu untuk mulai mencatat ronda malam ini</p>
+    <div class="form-group">
+      <label>Pilih Nama Petugas</label>
+      <select class="form-control" id="selPetugas">
+        <option value="">— Pilih nama —</option>
+      </select>
+    </div>
+    <div style="text-align:center;margin-bottom:16px">
+      <small style="color:rgba(255,255,255,.3)">atau</small>
+    </div>
+    <div class="form-group">
+      <label>Nama Bebas (tulis manual)</label>
+      <input class="form-control" id="inpNamaBebas" placeholder="Contoh: Pak Budi">
+    </div>
+    <button class="btn btn-primary" onclick="masukSebagai()">✅ Masuk &amp; Mulai Ronda</button>
+    <div style="margin-top:20px;text-align:center">
+      <a href="login.html" style="font-size:12px;color:rgba(99,102,241,.7)">🔐 Masuk sebagai Admin</a>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>🛡️ Catat Ronda</h1>
+  <div class="ops-info">
+    <b id="hNama">—</b>
+    <span id="hWaktu">—</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="container">
+  <!-- Stat hari ini -->
+  <div class="stat-row">
+    <div class="stat"><div class="v" id="stSudah">0</div><div class="l">✅ Sudah Ronda</div></div>
+    <div class="stat"><div class="v" id="stBelum">0</div><div class="l">⏳ Belum Ronda</div></div>
+    <div class="stat"><div class="v" id="stPutaran">0</div><div class="l">🔄 Total Nominal</div></div>
+  </div>
+
+  <div class="grid">
+    <!-- Scan QR -->
+    <div class="card">
+      <div class="card-title">📷 Scan QR Code</div>
+      <div id="reader"></div>
+      <div class="scan-status" id="scanStatus">Klik tombol untuk aktifkan kamera</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnScan" onclick="startScan()" style="flex:1">▶ Mulai Scan</button>
+        <button class="btn btn-ghost" id="btnStop" onclick="stopScan()" style="display:none;flex:1">⏹ Stop</button>
+      </div>
+    </div>
+
+    <!-- Input Manual -->
+    <div class="card">
+      <div class="card-title">✏️ Input Manual</div>
+      <div class="form-group">
+        <label>Pilih Warga</label>
+        <select class="form-control" id="selWarga" onchange="onWargaChange()">
+          <option value="">— Pilih nama warga —</option>
+        </select>
+      </div>
+      <div class="warga-info" id="wargaInfo">
+        <div class="wn" id="wiNama"></div>
+        <div class="wa" id="wiAlamat"></div>
+        <div style="margin-top:8px" id="wiStatus"></div>
+      </div>
+      <div class="form-group" style="margin-top:14px">
+        <label>Nominal Ronda (Rp)</label>
+        <input class="form-control" type="number" id="inpNominal" value="5000" step="500">
+      </div>
+      <div class="form-group">
+        <label>Catatan (opsional)</label>
+        <input class="form-control" id="inpCatatan" placeholder="Keterangan...">
+      </div>
+      <button class="btn btn-primary" onclick="inputManual()">💾 Catat Ronda</button>
+    </div>
+  </div>
+
+  <!-- Log hari ini -->
+  <div class="card">
+    <div class="card-title">📋 Log Ronda Malam Ini &nbsp;<span class="badge b" id="logCount">0</span></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>#</th><th>Nama</th><th>RT/RW</th><th>Waktu</th><th>Nominal</th><th>Cara</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:20px">
+    <button class="btn btn-ghost" onclick="logout()">🚪 Selesai & Keluar</button>
+  </div>
+</div>
+
+<!-- MODAL KONFIRMASI SCAN -->
+<div class="overlay" id="konfirmModal">
+  <div class="modal">
+    <div style="font-size:52px;margin-bottom:12px">✅</div>
+    <h3 style="color:#fff;font-size:18px;margin-bottom:6px" id="kNama"></h3>
+    <p style="color:rgba(255,255,255,.4);font-size:13px;margin-bottom:20px" id="kAlamat"></p>
+    <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:16px;margin-bottom:20px">
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:10px">Nominal Ronda</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:20px">
+        <button onclick="adjK(-1000)" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:16px;cursor:pointer">−1k</button>
+        <span id="kJml" style="font-size:28px;font-weight:700;color:#fff;min-width:100px;text-align:center">5000</span>
+        <button onclick="adjK(1000)" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:16px;cursor:pointer">+1k</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="cancelK()">Batal</button>
+      <button class="btn btn-primary" style="flex:1" onclick="confirmK()">✅ Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+let _petugas = null, _scanner = null, _scanData = null, _kJml = 5000;
+
+// ── Init ──
+function init() {
+  const sel = document.getElementById('selPetugas');
+  DB._g(DB.K.O).filter(o => o.aktif).forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.id; opt.textContent = o.nama + ' (' + o.role + ')';
+    sel.appendChild(opt);
+  });
+  populateWarga();
+  setInterval(() => {
+    document.getElementById('hWaktu').textContent = new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }, 1000);
+}
+
+function masukSebagai() {
+  const selId = document.getElementById('selPetugas').value;
+  const namaBebas = document.getElementById('inpNamaBebas').value.trim();
+  if (!selId && !namaBebas) { alert('Pilih nama atau tulis nama kamu dulu.'); return; }
+
+  if (selId) {
+    const op = DB.ops.byId(selId);
+    _petugas = { id: op.id, nama: op.nama, fromOps: true };
+    DB.act.push(op.id, 'LOGIN', 'Masuk halaman petugas ronda');
+  } else {
+    _petugas = { id: null, nama: namaBebas, fromOps: false };
+  }
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('hNama').textContent = _petugas.nama;
+  renderStats(); renderLog();
+}
+
+function logout() {
+  if (!confirm('Selesai ronda hari ini?')) return;
+  if (_petugas && _petugas.id) DB.act.push(_petugas.id, 'LOGOUT', 'Selesai dari halaman petugas');
+  stopScan();
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('selPetugas').value = '';
+  document.getElementById('inpNamaBebas').value = '';
+  _petugas = null;
+}
+
+// ── Warga ──
+function populateWarga() {
+  const sel = document.getElementById('selWarga');
+  const cur = sel.value;
+  const list = DB.warga.all().sort((a, b) => a.nama.localeCompare(b.nama));
+  sel.innerHTML = '<option value="">— Pilih nama warga —</option>' + list.map(w => `<option value="${w.id}">${w.nama} – RT ${w.rt}/RW ${w.rw}</option>`).join('');
+  sel.value = cur;
+}
+
+function onWargaChange() {
+  const id = document.getElementById('selWarga').value;
+  const info = document.getElementById('wargaInfo');
+  if (!id) { info.style.display = 'none'; return; }
+  const w = DB.warga.byId(id);
+  const log = DB.ronda.byDate(DB.today()).find(l => l.wargaId === id);
+  document.getElementById('wiNama').textContent = w.nama;
+  document.getElementById('wiAlamat').textContent = w.alamat + ' | RT ' + w.rt + ' / RW ' + w.rw;
+  document.getElementById('wiStatus').innerHTML = log
+    ? `<span class="badge g">✅ Sudah bayar ${fmt(log.nominal)}</span>`
+    : '<span class="badge r">⏳ Belum bayar</span>';
+  info.style.display = 'block';
+}
+
+// ── Scan ──
+function startScan() {
+  document.getElementById('btnScan').style.display = 'none';
+  document.getElementById('btnStop').style.display = 'flex';
+  document.getElementById('scanStatus').textContent = '📡 Menginisialisasi kamera...';
+  _scanner = new Html5Qrcode('reader');
+  _scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 200 }, onScan, () => {})
+    .then(() => document.getElementById('scanStatus').textContent = '✅ Kamera aktif – arahkan ke QR Code')
+    .catch(e => { document.getElementById('scanStatus').textContent = '❌ ' + e; stopScan(); });
+}
+
+function stopScan() {
+  if (_scanner) { _scanner.stop().catch(() => {}); _scanner = null; }
+  document.getElementById('btnScan').style.display = 'flex';
+  document.getElementById('btnStop').style.display = 'none';
+  document.getElementById('scanStatus').textContent = 'Kamera dimatikan.';
+}
+
+function onScan(text) {
+  const data = QR.parse(text);
+  if (!data) { showNotif('QR tidak dikenal ❌', 'r'); return; }
+  const w = DB.warga.byId(data.id);
+  if (!w) { showNotif('Warga tidak ada di database ❌', 'r'); return; }
+  stopScan();
+  _scanData = w; _kJml = 5000;
+  document.getElementById('kNama').textContent = w.nama;
+  document.getElementById('kAlamat').textContent = w.alamat + ' | RT ' + w.rt + ' / RW ' + w.rw;
+  document.getElementById('kJml').textContent = _kJml;
+  document.getElementById('konfirmModal').classList.add('open');
+}
+
+function adjK(d) { _kJml = Math.max(0, _kJml + d); document.getElementById('kJml').textContent = _kJml; }
+function cancelK() { document.getElementById('konfirmModal').classList.remove('open'); _scanData = null; }
+
+function confirmK() {
+  if (!_scanData) return;
+  try {
+    DB.ronda.record({ wargaId: _scanData.id, nominal: _kJml, method: 'scan' });
+    if (_petugas && _petugas.id) DB.act.push(_petugas.id, 'CATAT_RONDA', _scanData.nama + ' (' + fmt(_kJml) + ') via scan');
+    showNotif('✅ ' + _scanData.nama + ' berhasil dicatat!', 'g');
+    document.getElementById('konfirmModal').classList.remove('open');
+    _scanData = null; renderStats(); renderLog();
+  } catch(e) { showNotif(e.message, 'r'); }
+}
+
+// ── Manual ──
+function inputManual() {
+  const wargaId = document.getElementById('selWarga').value;
+  const nominal = parseInt(document.getElementById('inpNominal').value) || 0;
+  const catatan = document.getElementById('inpCatatan').value.trim();
+  if (!wargaId) { showNotif('Pilih warga dulu!', 'y'); return; }
+  try {
+    const w = DB.warga.byId(wargaId);
+    DB.ronda.record({ wargaId, nominal, catatan, method: 'manual' });
+    if (_petugas && _petugas.id) DB.act.push(_petugas.id, 'CATAT_RONDA', w.nama + ' (' + fmt(nominal) + ') manual');
+    showNotif('✅ ' + w.nama + ' dicatat (' + fmt(nominal) + ')!', 'g');
+    document.getElementById('selWarga').value = '';
+    document.getElementById('inpNominal').value = 5000;
+    document.getElementById('inpCatatan').value = '';
+    document.getElementById('wargaInfo').style.display = 'none';
+    renderStats(); renderLog();
+  } catch(e) { showNotif(e.message, 'r'); }
+}
+
+// ── Render ──
+function renderStats() {
+  const st = DB.ronda.statsToday();
+  document.getElementById('stSudah').textContent = st.sudah;
+  document.getElementById('stBelum').textContent = st.belum;
+  document.getElementById('stPutaran').textContent = fmt(st.nominal);
+}
+
+function renderLog() {
+  const logs = DB.ronda.byDate(DB.today());
+  document.getElementById('logCount').textContent = logs.length;
+  const body = document.getElementById('logBody');
+  if (!logs.length) {
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:rgba(255,255,255,.3)">Belum ada ronda hari ini</td></tr>';
+    return;
+  }
+  body.innerHTML = logs.slice().reverse().map((l, i) => `<tr>
+    <td>${logs.length - i}</td>
+    <td><strong>${l.nama}</strong></td>
+    <td>RT ${l.rt}/RW ${l.rw}</td>
+    <td>${l.waktu}</td>
+    <td><span class="badge g">${fmt(l.nominal)}</span></td>
+    <td><span class="badge ${l.method === 'scan' ? 'b' : 'y'}">${l.method === 'scan' ? '📷' : '✏️'}</span></td>
+  </tr>`).join('');
+}
+
+// ── Notif ──
+let _nc = null;
+function showNotif(msg, type = 'b') {
+  if (!_nc) { _nc = document.createElement('div'); _nc.style.cssText = 'position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px'; document.body.appendChild(_nc); }
+  const colors = { g: '#22c55e', r: '#ef4444', y: '#f59e0b', b: '#6366f1' };
+  const el = document.createElement('div');
+  el.style.cssText = `background:${colors[type]||colors.b};color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;box-shadow:0 4px 15px rgba(0,0,0,.4);animation:sIn .3s ease;max-width:320px`;
+  el.textContent = msg;
+  _nc.appendChild(el);
+  setTimeout(() => { el.style.animation = 'sOut .3s ease forwards'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+init();
+</script>
+</body>
+</html>

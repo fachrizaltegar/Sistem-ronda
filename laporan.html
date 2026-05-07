@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laporan – Sistem Ronda</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="icon">🛡️</div><div><h2>Sistem Ronda</h2><small>RT/RW Manager</small></div></div>
+  <a href="index.html" class="nav-item"><span class="ni">📊</span> Dashboard</a>
+  <a href="warga.html" class="nav-item"><span class="ni">👥</span> Data Warga</a>
+  <a href="scan.html" class="nav-item"><span class="ni">📷</span> Scan / Input Ronda</a>
+  <a href="laporan.html" class="nav-item active"><span class="ni">📋</span> Laporan</a>
+  <a href="operator.html" class="nav-item" id="adminNav"><span class="ni">⚙️</span> Manajemen Operator</a>
+  <div class="sidebar-user">
+    <div class="uname" id="uName">—</div><div class="urole" id="uRole">—</div>
+    <button class="btn-logout" onclick="Auth.logout()">🚪 Keluar</button>
+  </div>
+</nav>
+
+<div class="topbar">
+  <button class="btn-menu" onclick="openSidebar()">☰</button>
+  <span style="font-weight:600;font-size:15px">Laporan</span>
+  <span></span>
+</div>
+
+<main class="main fade-in">
+  <div class="page-header">
+    <h1>📋 Laporan Ronda</h1>
+    <p>Data rekap kehadiran ronda dan log aktivitas operator</p>
+  </div>
+
+  <!-- Tab -->
+  <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:0">
+    <button class="tab-btn active" id="tab1" onclick="switchTab('ronda')">📊 Laporan Ronda</button>
+    <button class="tab-btn" id="tab2" onclick="switchTab('rekap')">👤 Rekap per Warga</button>
+    <button class="tab-btn" id="tab3" onclick="switchTab('activity')">🕵️ Log Aktivitas</button>
+  </div>
+
+  <!-- Filter Tanggal -->
+  <div class="card" style="margin-bottom:20px">
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div class="form-group" style="margin:0;flex:1;min-width:150px">
+        <label>Dari Tanggal</label>
+        <input class="form-control" type="date" id="fromDate">
+      </div>
+      <div class="form-group" style="margin:0;flex:1;min-width:150px">
+        <label>Sampai Tanggal</label>
+        <input class="form-control" type="date" id="toDate">
+      </div>
+      <button class="btn btn-primary" onclick="applyFilter()">🔍 Filter</button>
+      <button class="btn btn-ghost" onclick="clearFilter()">✕ Reset</button>
+      <button class="btn btn-success" id="btnExport" onclick="doExport()">📤 Export Excel</button>
+    </div>
+  </div>
+
+  <!-- TAB: Laporan Ronda -->
+  <div id="panelRonda" class="tab-panel">
+    <div class="card">
+      <div class="card-title" id="rondaTitle">Semua Data Ronda</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Nama KK</th><th>Alamat</th><th>RT/RW</th><th>Tanggal</th><th>Waktu</th><th>Nominal</th><th>Metode</th><th>Catatan</th><th>Aksi</th></tr></thead>
+          <tbody id="tRonda"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Rekap per Warga -->
+  <div id="panelRekap" class="tab-panel" style="display:none">
+    <div class="card">
+      <div class="card-title">Rekap Total per Warga</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Nama KK</th><th>Total Hari</th><th>Total Nominal</th><th>Rata-rata</th></tr></thead>
+          <tbody id="tRekap"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Log Aktivitas Operator -->
+  <div id="panelActivity" class="tab-panel" style="display:none">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">👤 Operator Aktif Hari Ini</div>
+      <div id="opTodayDetail"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🕵️ Semua Log Aktivitas</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Operator</th><th>Username</th><th>Role</th><th>Aksi</th><th>Detail</th><th>Tanggal</th><th>Waktu</th></tr></thead>
+          <tbody id="tActivity"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="app.js"></script>
+<script>
+Auth.guard();
+const ses = Auth.ses();
+document.getElementById('uName').textContent = ses.nama;
+document.getElementById('uRole').textContent = ses.role;
+if (ses.role !== 'admin') document.getElementById('adminNav').style.display = 'none';
+
+// Set default tanggal (7 hari terakhir)
+const today = DB.today();
+const w7Date = new Date(); w7Date.setDate(w7Date.getDate() - 7);
+const w7 = DB._dt(w7Date);
+
+document.getElementById('toDate').value = today;
+document.getElementById('fromDate').value = w7;
+
+let _activeTab = 'ronda', _from = w7, _to = today;
+
+function switchTab(t) {
+  _activeTab = t;
+  ['ronda','rekap','activity'].forEach(id => {
+    document.getElementById('panel'+id.charAt(0).toUpperCase()+id.slice(1)).style.display = id===t?'block':'none';
+    document.getElementById('tab'+(id==='ronda'?1:id==='rekap'?2:3)).classList.toggle('active', id===t);
+  });
+  renderAll();
+}
+
+function applyFilter() {
+  _from = document.getElementById('fromDate').value;
+  _to = document.getElementById('toDate').value;
+  if (!_from || !_to) { Notif.warning('Pilih rentang tanggal.'); return; }
+  if (_from > _to) { Notif.warning('Tanggal "dari" harus sebelum "sampai".'); return; }
+  renderAll();
+}
+
+function clearFilter() {
+  _from = w7; _to = today;
+  document.getElementById('fromDate').value = w7;
+  document.getElementById('toDate').value = today;
+  renderAll();
+}
+
+function doExport() {
+  try {
+    if (_activeTab === 'ronda') Excel.laporan(_from, _to);
+    else if (_activeTab === 'activity') Auth.exportActivityLog ? Auth.exportActivityLog(_from, _to) : Excel.activity(_from, _to);
+    else Excel.laporan(_from, _to);
+    Notif.success('File Excel berhasil diunduh!');
+  } catch(e) { Notif.error(e.message); }
+}
+
+function renderAll() {
+  renderRonda(); renderRekap(); renderActivity();
+}
+
+function renderRonda() {
+  const logs = _from && _to ? DB.ronda.range(_from, _to) : DB.ronda.all();
+  const lbl = _from && _to ? `${DateFmt(_from)} – ${DateFmt(_to)}` : 'Semua Data';
+  document.getElementById('rondaTitle').textContent = `Laporan Ronda – ${lbl} (${logs.length} data)`;
+  const body = document.getElementById('tRonda');
+  if (!logs.length) { body.innerHTML = empty(); return; }
+  body.innerHTML = logs.slice().reverse().map((l, i) => `<tr>
+    <td>${logs.length-i}</td><td><strong>${l.nama}</strong></td><td>${l.alamat}</td>
+    <td>RT ${l.rt}/RW ${l.rw}</td><td>${DateFmt(l.tgl)}</td><td>${l.waktu}</td>
+    <td><span class="badge green">${fmt(l.nominal)}</span></td>
+    <td><span class="badge ${l.method==='scan'?'blue':'yellow'}">${l.method==='scan'?'📷 Scan':'✏️ Manual'}</span></td>
+    <td>${l.catatan||'-'}</td>
+    <td>
+      <div style="display:flex;gap:5px">
+        <button class="btn btn-ghost btn-sm" onclick="editRonda('${l.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="delRonda('${l.id}')">🗑️</button>
+      </div>
+    </td>
+  </tr>`).join('');
+}
+
+function editRonda(id) {
+  const logs = DB.ronda.all();
+  const l = logs.find(item => item.id === id);
+  if (!l) return;
+  document.getElementById('editLogId').value = id;
+  document.getElementById('editLogNama').textContent = l.nama;
+  document.getElementById('editLogNominal').value = l.nominal;
+  document.getElementById('editLogCatatan').value = l.catatan || '';
+  document.getElementById('modalEditLog').classList.add('open');
+}
+
+function closeEditLog() { document.getElementById('modalEditLog').classList.remove('open'); }
+
+function saveEditLog() {
+  const id = document.getElementById('editLogId').value;
+  const nominal = parseInt(document.getElementById('editLogNominal').value) || 0;
+  const catatan = document.getElementById('editLogCatatan').value.trim();
+  try {
+    DB.ronda.update(id, { nominal, catatan });
+    Notif.success('Data diperbarui!');
+    closeEditLog(); renderAll();
+  } catch(e) { Notif.error(e.message); }
+}
+
+function delRonda(id) {
+  if (!confirm('Hapus data ronda ini?')) return;
+  DB.ronda.del(id); renderAll(); Notif.success('Data dihapus.');
+}
+
+function renderRekap() {
+  const stats = DB.ronda.byWargaStat(_from, _to);
+  const body = document.getElementById('tRekap');
+  if (!stats.length) { body.innerHTML = empty(); return; }
+  body.innerHTML = stats.map((s, i) => `<tr>
+    <td>${i+1}</td><td><strong>${s.nama}</strong></td>
+    <td><span class="badge blue">${s.hari} hari</span></td>
+    <td><span class="badge green">${fmt(s.nominal)}</span></td>
+    <td>${fmt((s.nominal/s.hari).toFixed(0))} / hari</td>
+  </tr>`).join('');
+}
+
+function renderActivity() {
+  // Operator hari ini
+  const ops = DB.act.hariIni();
+  document.getElementById('opTodayDetail').innerHTML = ops.length ?
+    `<div class="tbl-wrap"><table><thead><tr><th>Nama</th><th>Username</th><th>Role</th><th>Login Pertama</th><th>Logout Terakhir</th><th>Total Aksi</th></tr></thead><tbody>${
+      ops.map(o=>`<tr><td><strong>${o.nama}</strong></td><td>${o.username}</td><td><span class="badge ${o.role==='admin'?'purple':'blue'}">${o.role}</span></td><td>${o.login||'-'}</td><td>${o.logout||'<span class="badge green">Aktif</span>'}</td><td><span class="badge cyan">${o.aksi}</span></td></tr>`).join('')
+    }</tbody></table></div>` :
+    '<div class="empty"><div class="e-icon">📭</div><p>Belum ada operator login hari ini</p></div>';
+
+  // Semua log
+  const logs = _from && _to ? DB.act.range(_from, _to) : DB.act.all();
+  const body = document.getElementById('tActivity');
+  if (!logs.length) { body.innerHTML = empty(); return; }
+  const actionColors = {LOGIN:'green',LOGOUT:'red',CATAT_RONDA:'blue',HAPUS_RONDA:'red',TAMBAH_WARGA:'blue',HAPUS_WARGA:'red',EDIT_WARGA:'yellow'};
+  body.innerHTML = logs.slice().reverse().map((l, i) => `<tr>
+    <td>${logs.length-i}</td><td><strong>${l.nama}</strong></td><td>${l.username}</td>
+    <td><span class="badge ${l.role==='admin'?'purple':'blue'}">${l.role}</span></td>
+    <td><span class="badge ${actionColors[l.action]||'ghost'}">${l.action}</span></td>
+    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${l.detail||'-'}</td>
+    <td>${DateFmt(l.tgl)}</td><td>${l.waktu}</td>
+  </tr>`).join('');
+}
+
+function DateFmt(d) {
+  if (!d) return '-';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+}
+
+function empty(cols=10) { return `<tr><td colspan="${cols}"><div class="empty"><div class="e-icon">📭</div><p>Tidak ada data</p></div></td></tr>`; }
+
+  renderAll();
+}
+
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+
+renderAll();
+</script>
+
+<!-- MODAL EDIT LOG -->
+<div class="modal-overlay" id="modalEditLog">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h3>Edit Data Ronda</h3>
+      <button class="modal-close" onclick="closeEditLog()">✕</button>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:14px;font-weight:600;color:#a5b4fc" id="editLogNama"></div>
+    </div>
+    <input type="hidden" id="editLogId">
+    <div class="form-group">
+      <label>Nominal (Rp)</label>
+      <input class="form-control" type="number" id="editLogNominal">
+    </div>
+    <div class="form-group">
+      <label>Catatan</label>
+      <input class="form-control" id="editLogCatatan">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeEditLog()">Batal</button>
+      <button class="btn btn-primary" onclick="saveEditLog()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.tab-btn{background:none;border:none;color:rgba(255,255,255,.5);font-size:14px;font-weight:500;padding:10px 16px;border-bottom:2px solid transparent;font-family:'Inter',sans-serif;transition:all .2s;cursor:pointer}
+.tab-btn:hover{color:#fff}
+.tab-btn.active{color:#818cf8;border-bottom-color:#6366f1}
+</style>
+</body>
+</html>

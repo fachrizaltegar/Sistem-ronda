@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Dashboard – Sistem Ronda</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon">🛡️</div>
+      <div>
+        <h2>Sistem Ronda</h2><small>RT/RW Manager</small>
+      </div>
+    </div>
+    <a href="index.html" class="nav-item active"><span class="ni">📊</span> Dashboard</a>
+    <a href="warga.html" class="nav-item"><span class="ni">👥</span> Data Warga</a>
+    <a href="scan.html" class="nav-item"><span class="ni">📷</span> Scan / Input Ronda</a>
+    <a href="laporan.html" class="nav-item"><span class="ni">📋</span> Laporan</a>
+    <a href="operator.html" class="nav-item" id="adminNav"><span class="ni">⚙️</span> Manajemen Operator</a>
+    <div class="sidebar-user" id="sideUser">
+      <div class="uname" id="uName">—</div>
+      <div class="urole" id="uRole">—</div>
+      <button class="btn-logout" onclick="Auth.logout()">🚪 Keluar</button>
+    </div>
+  </nav>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button class="btn-menu" onclick="openSidebar()">☰</button>
+    <span style="font-weight:600;font-size:15px">Dashboard</span>
+    <span id="topTime" style="font-size:12px;color:rgba(255,255,255,.5)"></span>
+  </div>
+
+  <main class="main fade-in">
+    <div class="page-header">
+      <h1 id="greetMsg">Selamat Datang 👋</h1>
+      <p id="todayDate">—</p>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stat-grid" id="statGrid">
+      <div class="stat-card purple">
+        <div class="s-icon">👥</div>
+        <div class="s-val" id="sTotalWarga">0</div>
+        <div class="s-lbl">Total Warga</div>
+      </div>
+      <div class="stat-card green">
+        <div class="s-icon">✅</div>
+        <div class="s-val" id="sSudah">0</div>
+        <div class="s-lbl">Sudah Ronda Hari Ini</div>
+      </div>
+      <div class="stat-card red">
+        <div class="s-icon">⏳</div>
+        <div class="s-val" id="sBelum">0</div>
+        <div class="s-lbl">Belum Ronda</div>
+      </div>
+      <div class="stat-card cyan">
+        <div class="s-icon">💰</div>
+        <div class="s-val" id="sNominal">Rp 0</div>
+        <div class="s-lbl">Total Nominal Hari Ini</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px" class="dash-grid">
+      <!-- Chart mingguan -->
+      <div class="card">
+        <div class="card-title">📈 Pendapatan 7 Hari Terakhir</div>
+        <div class="chart-bars" id="weekChart"></div>
+      </div>
+
+      <!-- Operator hari ini -->
+      <div class="card">
+        <div class="card-title">🧑‍💼 Operator Hari Ini</div>
+        <div id="opToday">
+          <div class="empty">
+            <div class="e-icon">📭</div>
+            <p>Belum ada data</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <!-- Sudah ronda -->
+      <div class="card">
+        <div class="card-title">✅ Sudah Ronda Hari Ini</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Waktu</th>
+                <th>Nominal</th>
+              </tr>
+            </thead>
+            <tbody id="tSudah">
+              <tr>
+                <td colspan="3" class="empty">
+                  <p>Belum ada</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Belum ronda -->
+      <div class="card">
+        <div class="card-title">⏳ Belum Ronda Hari Ini</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Alamat</th>
+                <th>RT/RW</th>
+              </tr>
+            </thead>
+            <tbody id="tBelum">
+              <tr>
+                <td colspan="3" class="empty">
+                  <p>Semua sudah ronda 🎉</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    Auth.guard();
+    const ses = Auth.ses();
+    document.getElementById('uName').textContent = ses.nama;
+    document.getElementById('uRole').textContent = ses.role;
+    if (ses.role !== 'admin') document.getElementById('adminNav').style.display = 'none';
+
+    // Greeting
+    const h = new Date().getHours();
+    const greet = h < 11 ? 'Selamat Pagi' : h < 15 ? 'Selamat Siang' : h < 18 ? 'Selamat Sore' : 'Selamat Malam';
+    document.getElementById('greetMsg').textContent = greet + ', ' + ses.nama + ' 👋';
+    document.getElementById('todayDate').textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    // Clock
+    function tick() {
+      document.getElementById('topTime').textContent = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    }
+    tick(); setInterval(tick, 1000);
+
+    function render() {
+      const st = DB.ronda.statsToday();
+      document.getElementById('sTotalWarga').textContent = st.total;
+      document.getElementById('sSudah').textContent = st.sudah;
+      document.getElementById('sBelum').textContent = st.belum;
+      document.getElementById('sNominal').textContent = fmt(st.nominal);
+
+      // Tabel sudah ronda
+      const ts = document.getElementById('tSudah');
+      ts.innerHTML = st.logs.length ? st.logs.map(l => `<tr><td>${l.nama}</td><td>${l.waktu}</td><td><span class="badge green">${fmt(l.nominal)}</span></td></tr>`).join('') : '<tr><td colspan="3" style="text-align:center;color:rgba(255,255,255,.3);padding:20px">Belum ada</td></tr>';
+
+      // Tabel belum ronda
+      const belum = DB.ronda.belumHariIni();
+      const tb = document.getElementById('tBelum');
+      tb.innerHTML = belum.length ? belum.map(w => `<tr><td>${w.nama}</td><td>${w.alamat}</td><td>RT ${w.rt}/RW ${w.rw}</td></tr>`).join('') : '<tr><td colspan="3" style="text-align:center;color:#86efac;padding:20px">🎉 Semua sudah ronda!</td></tr>';
+
+      // Chart mingguan
+      const week = DB.ronda.statsWeek();
+      const maxC = Math.max(...week.map(d => d.nominal), 1);
+      document.getElementById('weekChart').innerHTML = week.map(d => `
+    <div class="chart-bar-wrap">
+      <div class="chart-val">${fmt(d.nominal)}</div>
+      <div class="chart-bar" style="height:${Math.max((d.nominal / maxC) * 90, 4)}px"></div>
+      <div class="chart-lbl">${d.label}</div>
+    </div>`).join('');
+
+      // Operator hari ini
+      const ops = DB.act.hariIni();
+      document.getElementById('opToday').innerHTML = ops.length ? `<div class="tbl-wrap"><table><thead><tr><th>Nama</th><th>Login</th><th>Aksi</th></tr></thead><tbody>${ops.map(o => `<tr><td><span style="font-weight:600">${o.nama}</span><br><span style="font-size:11px;color:rgba(255,255,255,.4)">${o.role}</span></td><td>${o.login || '-'}</td><td><span class="badge blue">${o.aksi}</span></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><div class="e-icon">📭</div><p>Belum ada login hari ini</p></div>';
+    }
+
+    render();
+    setInterval(render, 30000);
+
+    function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
+    function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+  </script>
+  <style>
+    @media(max-width:768px) {
+      .dash-grid {
+        grid-template-columns: 1fr !important
+      }
+    }
+  </style>
+</body>
+
+</html>

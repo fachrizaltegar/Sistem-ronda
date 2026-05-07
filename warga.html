@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Data Warga – Sistem Ronda</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="icon">🛡️</div><div><h2>Sistem Ronda</h2><small>RT/RW Manager</small></div></div>
+  <a href="index.html" class="nav-item"><span class="ni">📊</span> Dashboard</a>
+  <a href="warga.html" class="nav-item active"><span class="ni">👥</span> Data Warga</a>
+  <a href="scan.html" class="nav-item"><span class="ni">📷</span> Scan / Input Ronda</a>
+  <a href="laporan.html" class="nav-item"><span class="ni">📋</span> Laporan</a>
+  <a href="operator.html" class="nav-item" id="adminNav"><span class="ni">⚙️</span> Manajemen Operator</a>
+  <div class="sidebar-user">
+    <div class="uname" id="uName">—</div><div class="urole" id="uRole">—</div>
+    <button class="btn-logout" onclick="Auth.logout()">🚪 Keluar</button>
+  </div>
+</nav>
+
+<div class="topbar">
+  <button class="btn-menu" onclick="openSidebar()">☰</button>
+  <span style="font-weight:600;font-size:15px">Data Warga</span>
+  <span></span>
+</div>
+
+<main class="main fade-in">
+  <div class="page-header">
+    <h1>👥 Data Warga</h1>
+    <p>Kelola data kepala keluarga dan QR Code ronda</p>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+      <div class="search-bar" style="margin:0;flex:1">
+        <input class="search-inp" id="searchInp" placeholder="🔍 Cari nama, alamat, RT..." oninput="renderTable()">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()">📥 Import Excel</button>
+        <button class="btn btn-ghost btn-sm" onclick="Excel.warga()">📤 Export Excel</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal()">➕ Tambah Warga</button>
+      </div>
+    </div>
+    <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="doImport(this)">
+  </div>
+
+  <div class="card">
+    <div class="card-title" id="tblTitle">Daftar Warga</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Nama KK</th><th>Alamat</th><th>RT/RW</th><th>No HP</th><th>Nominal Hari Ini</th><th>Aksi</th></tr></thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL TAMBAH/EDIT -->
+<div class="modal-overlay" id="modalForm">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Tambah Warga</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <input type="hidden" id="editId">
+    <div class="form-row">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Nama Kepala Keluarga *</label>
+        <input class="form-control" id="fNama" placeholder="Nama lengkap">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Alamat *</label>
+      <input class="form-control" id="fAlamat" placeholder="Jl. ... No. ...">
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>RT *</label><input class="form-control" id="fRT" placeholder="01"></div>
+      <div class="form-group"><label>RW *</label><input class="form-control" id="fRW" placeholder="02"></div>
+    </div>
+    <div class="form-group">
+      <label>No HP (opsional)</label>
+      <input class="form-control" id="fHP" placeholder="08xx...">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="saveWarga()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL QR -->
+<div class="modal-overlay" id="modalQR">
+  <div class="modal" style="max-width:320px;text-align:center">
+    <div class="modal-header">
+      <h3 id="qrTitle">QR Code</h3>
+      <button class="modal-close" onclick="closeQR()">✕</button>
+    </div>
+    <div id="qrContainer" style="display:flex;justify-content:center;margin:16px 0"></div>
+    <p id="qrName" style="font-size:13px;color:rgba(255,255,255,.6);margin-bottom:4px"></p>
+    <p id="qrAddr" style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:16px"></p>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button class="btn btn-primary" onclick="doPrint()">🖨️ Cetak QR</button>
+      <button class="btn btn-ghost" onclick="closeQR()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+Auth.guard();
+const ses = Auth.ses();
+document.getElementById('uName').textContent = ses.nama;
+document.getElementById('uRole').textContent = ses.role;
+if (ses.role !== 'admin') document.getElementById('adminNav').style.display = 'none';
+
+let _currentPrintWarga = null;
+
+function renderTable() {
+  const q = document.getElementById('searchInp').value.trim();
+  const list = q ? DB.warga.search(q) : DB.warga.all();
+  const todayLogs = DB.ronda.byDate(DB.today());
+  document.getElementById('tblTitle').textContent = `Daftar Warga (${list.length})`;
+  const body = document.getElementById('tblBody');
+  if (!list.length) { body.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="e-icon">📭</div><p>Belum ada data warga</p></div></td></tr>'; return; }
+  body.innerHTML = list.map((w, i) => {
+    const log = todayLogs.find(l => l.wargaId === w.id);
+    return `<tr>
+      <td>${i+1}</td>
+      <td><strong>${w.nama}</strong></td>
+      <td>${w.alamat}</td>
+      <td><span class="badge blue">RT ${w.rt}</span> <span class="badge purple">RW ${w.rw}</span></td>
+      <td>${w.noHP || '-'}</td>
+      <td>${log ? `<span class="badge green">✅ ${fmt(log.nominal)}</span>` : '<span class="badge red">⏳ Belum</span>'}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="showQR('${w.id}')">🔲 QR</button>
+        <button class="btn btn-ghost btn-sm" onclick="editWarga('${w.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="delWarga('${w.id}','${w.nama}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openModal(id = null) {
+  document.getElementById('editId').value = '';
+  document.getElementById('modalTitle').textContent = 'Tambah Warga';
+  ['fNama','fAlamat','fRT','fRW','fHP'].forEach(k => document.getElementById(k).value = '');
+  document.getElementById('modalForm').classList.add('open');
+}
+
+function editWarga(id) {
+  const w = DB.warga.byId(id);
+  if (!w) return;
+  document.getElementById('editId').value = id;
+  document.getElementById('modalTitle').textContent = 'Edit Warga';
+  document.getElementById('fNama').value = w.nama;
+  document.getElementById('fAlamat').value = w.alamat;
+  document.getElementById('fRT').value = w.rt;
+  document.getElementById('fRW').value = w.rw;
+  document.getElementById('fHP').value = w.noHP || '';
+  document.getElementById('modalForm').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modalForm').classList.remove('open'); }
+
+function saveWarga() {
+  const id = document.getElementById('editId').value;
+  const data = {
+    nama: document.getElementById('fNama').value.trim(),
+    alamat: document.getElementById('fAlamat').value.trim(),
+    rt: document.getElementById('fRT').value.trim(),
+    rw: document.getElementById('fRW').value.trim(),
+    noHP: document.getElementById('fHP').value.trim(),
+  };
+  try {
+    if (id) { DB.warga.update(id, data); Auth.log('EDIT_WARGA', data.nama); Notif.success('Data diperbarui!'); }
+    else { DB.warga.add(data); Auth.log('TAMBAH_WARGA', data.nama); Notif.success('Warga ditambahkan!'); }
+    closeModal(); renderTable();
+  } catch(e) { Notif.error(e.message); }
+}
+
+function delWarga(id, nama) {
+  if (!confirm('Hapus warga "' + nama + '"? Data ronda-nya juga akan terhapus.')) return;
+  try { DB.warga.del(id); Auth.log('HAPUS_WARGA', nama); Notif.success('Berhasil dihapus.'); renderTable(); }
+  catch(e) { Notif.error(e.message); }
+}
+
+function showQR(id) {
+  const w = DB.warga.byId(id);
+  if (!w) return;
+  _currentPrintWarga = w;
+  document.getElementById('qrTitle').textContent = 'QR Code – ' + w.nama;
+  document.getElementById('qrName').textContent = w.nama;
+  document.getElementById('qrAddr').textContent = w.alamat + ' | RT ' + w.rt + ' / RW ' + w.rw;
+  document.getElementById('qrContainer').innerHTML = '<div id="qrBox"></div>';
+  document.getElementById('modalQR').classList.add('open');
+  setTimeout(() => QR.gen('qrBox', w.qr || QR.payload(w), 180), 100);
+}
+
+function closeQR() { document.getElementById('modalQR').classList.remove('open'); }
+function doPrint() { if (_currentPrintWarga) QR.print(_currentPrintWarga); }
+
+async function doImport(inp) {
+  try {
+    const res = await Excel.importWarga(inp.files[0]);
+    Notif.success(`Berhasil: ${res.ok}, Dilewati: ${res.skip}`);
+    if (res.errors.length) console.warn(res.errors);
+    renderTable(); inp.value = '';
+  } catch(e) { Notif.error(e.message); }
+}
+
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+
+renderTable();
+</script>
+</body>
+</html>
