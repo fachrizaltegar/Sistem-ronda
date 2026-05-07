@@ -41,11 +41,13 @@
     <div class="card">
       <div class="card-title">📷 Scan QR Code</div>
       <div id="reader" style="border-radius:12px;overflow:hidden;min-height:250px;background:rgba(0,0,0,.3)"></div>
-      <div style="margin-top:12px;display:flex;gap:8px">
-        <button class="btn btn-primary" id="btnScan" onclick="startScan()">▶ Mulai Scan</button>
+      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">
+        <button class="btn btn-primary" id="btnScan" onclick="startScan()">▶ Mulai Kamera</button>
         <button class="btn btn-ghost" id="btnStop" onclick="stopScan()" style="display:none">⏹ Stop</button>
+        <button class="btn btn-success" onclick="document.getElementById('fileInp').click()">📸 Ambil Foto (Alternatif IP)</button>
+        <input type="file" id="fileInp" accept="image/*" capture="environment" style="display:none" onchange="scanFile(this)">
       </div>
-      <div id="scanStatus" style="margin-top:12px;font-size:13px;color:rgba(255,255,255,.5)">Klik "Mulai Scan" untuk mengaktifkan kamera</div>
+      <div id="scanStatus" style="margin-top:12px;font-size:13px;color:rgba(255,255,255,.5)">Jika kamera live tidak muncul (karena masalah IP/HTTP), gunakan tombol <b>"Ambil Foto"</b>.</div>
     </div>
 
     <!-- Panel Input Manual -->
@@ -220,6 +222,20 @@ function onScanSuccess(text) {
   document.getElementById('konfAlamat').textContent = warga.alamat + ' | RT ' + warga.rt + ' / RW ' + warga.rw;
   document.getElementById('konfJml').textContent = _konfJml;
   document.getElementById('modalKonfirm').classList.add('open');
+}
+
+function scanFile(inp) {
+  if (!inp.files.length) return;
+  const file = inp.files[0];
+  const sc = new Html5Qrcode('reader');
+  document.getElementById('scanStatus').textContent = '⌛ Memproses foto...';
+  sc.scanFile(file, true)
+    .then(onScanSuccess)
+    .catch(e => {
+      Notif.error('QR tidak terbaca. Pastikan foto terang dan jelas.');
+      document.getElementById('scanStatus').textContent = '❌ Gagal membaca foto.';
+    })
+    .finally(() => { inp.value = ''; });
 }
 
 function adjJml(d) { _konfJml = Math.max(0, _konfJml + d); document.getElementById('konfJml').textContent = _konfJml; }

@@ -119,10 +119,14 @@ tr:last-child td{border:none}
     <div class="card">
       <div class="card-title">📷 Scan QR Code</div>
       <div id="reader"></div>
-      <div class="scan-status" id="scanStatus">Klik tombol untuk aktifkan kamera</div>
-      <div class="btn-row">
-        <button class="btn btn-primary" id="btnScan" onclick="startScan()" style="flex:1">▶ Mulai Scan</button>
-        <button class="btn btn-ghost" id="btnStop" onclick="stopScan()" style="display:none;flex:1">⏹ Stop</button>
+      <div class="scanStatus" id="scanStatus" style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.5);text-align:center">Klik tombol untuk aktifkan kamera</div>
+      <div class="btn-row" style="flex-direction:column">
+        <div style="display:flex;gap:8px;width:100%">
+          <button class="btn btn-primary" id="btnScan" onclick="startScan()" style="flex:1">▶ Mulai Kamera</button>
+          <button class="btn btn-ghost" id="btnStop" onclick="stopScan()" style="display:none;flex:1">⏹ Stop</button>
+        </div>
+        <button class="btn btn-primary" style="margin-top:8px;background:linear-gradient(135deg,#22c55e,#16a34a)" onclick="document.getElementById('fileInp').click()">📸 Ambil Foto QR (Alternatif IP)</button>
+        <input type="file" id="fileInp" accept="image/*" capture="environment" style="display:none" onchange="scanFile(this)">
       </div>
     </div>
 
@@ -328,6 +332,20 @@ function onScan(text) {
   document.getElementById('kAlamat').textContent = w.alamat + ' | RT ' + w.rt + ' / RW ' + w.rw;
   document.getElementById('kJml').textContent = _kJml;
   document.getElementById('konfirmModal').classList.add('open');
+}
+
+function scanFile(inp) {
+  if (!inp.files.length) return;
+  const file = inp.files[0];
+  const sc = new Html5Qrcode('reader');
+  document.getElementById('scanStatus').textContent = '⌛ Memproses foto...';
+  sc.scanFile(file, true)
+    .then(onScan)
+    .catch(e => {
+      showNotif('QR tidak terbaca. Pastikan foto terang & jelas ❌', 'r');
+      document.getElementById('scanStatus').textContent = '❌ Gagal membaca foto.';
+    })
+    .finally(() => { inp.value = ''; });
 }
 
 function adjK(d) { _kJml = Math.max(0, _kJml + d); document.getElementById('kJml').textContent = _kJml; }
